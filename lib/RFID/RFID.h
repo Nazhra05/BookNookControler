@@ -11,6 +11,7 @@ private:
     String _rfidTag;
     byte _duration = 10;
     HardwareSerial *_rfid = new HardwareSerial(2);
+    void _readBytesFromSerial(uint8_t data[], int length);
 
 public:
     RFID(byte RXPin, byte TXPin);

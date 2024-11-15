@@ -6,18 +6,29 @@
 class Door
 {
 private:
-    Servo _servo;
-    byte _servoPin;
-    byte _selenoidPin;
-    byte _closeDegree;
-    byte _openDegree;
+    Servo _servoLeftDoor;
+    byte _servoLeftPin;
+    byte _solenoidLeftPin;
+    byte _openLeftDegree;
+    byte _closeLeftDegree;
+    bool _isOpenCloseLeftDegreeDefined = false;
+
+    Servo _servoRightDoor;
+    byte _servoRightPin;
+    byte _solenoidRightPin;
+    byte _closeRightDegree;
+    byte _openRightDegree;
+    bool _isOpenCloseRightDegreeDefined = false;
+
     bool _isOpened = false;
 
     void _degreeIncreament(byte start, byte end);
     void _degreeDecreament(byte start, byte end);
 
 public:
-    Door(byte servoPin, byte selenoidPin, byte closeDegree, byte openDegree);
+    Door(byte servoLeftPin, byte selenoidLeftPin, byte servoRightPin, byte solenoidRightPin);
+    void setLeftDoorDegree(byte closeDegree, byte openDegree);
+    void setRightDoorDegree(byte closeDegree, byte openDegree);
     void initialize();
     void open();
     void close();

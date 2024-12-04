@@ -3,11 +3,11 @@
 #include <WifiService.h>
 #include <FirebaseService.h>
 // #include <Door.h>
-// #include <Barcode.h>
+#include <Barcode.h>
 // #include <RFID.h>
 #include <env.h>
 
-// Barcode *barcode = new Barcode(BARCODE_RX_PIN, BARCODE_TX_PIN);
+Barcode *barcode = new Barcode(BARCODE_RX_PIN, BARCODE_TX_PIN);
 // RFID *rfid = new RFID(RFID_RX_PIN, RFID_TX_PIN);
 // Door *door = new Door(SERVO_LEFT_PIN, SOLENOID_LEFT_PIN, SERVO_RIGHT_PIN, SOLENOID_RIGHT_PIN);
 
@@ -31,6 +31,7 @@ void setup()
     // door->initialize();
 
     wifi->connect();
+    wifi->setNTP(NTP_SERVER, GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC);
 
     if (wifi->ready())
     {
@@ -44,29 +45,26 @@ void loop()
 {
     fbs->appLoop();
 
-    if (fbs->isReady() && taskComplete < 1)
+    if (millis() - prev > delayRead)
     {
-        fbs->validateBarcode("barcode-EKNomuQddtThBpW0a5UkVgOyLfH2");
-        delay(1000);
-        taskComplete++;
-    }
+        prev = millis();
+        barcodeData = barcode->read();
 
-    // if (millis() - prev > delayRead)
-    // {
-    //     prev = millis();
-    //     barcodeData = barcode->read();
-    //     if (barcodeData == "Buka" && !door->isOpen())
-    //     {
-    //         door->open();
-    //     }
-    //     else if (barcodeData == "Tutup" && door->isOpen())
-    //     {
-    //         door->close();
-    //     }
-    //     else if (barcodeData == "Baca")
-    //     {
-    //         Serial.println(fbs->getData("aa/bb"));
-    //         rfid->read();
-    //     }
-    // }
+        if (fbs->isReady() && !barcodeData.isEmpty())
+        {
+            String uid = fbs->validateBarcode(barcodeData);
+
+            if (!uid.isEmpty())
+            {
+                if (fbs->addHistory(uid.c_str(), wifi->getISOTime().c_str()))
+                {
+                    Serial.println("Berhasil Menambahkan History");
+                }
+                else
+                {
+                    Serial.println("Gagal Menambahkan History");
+                }
+            }
+        }
+    }
 }

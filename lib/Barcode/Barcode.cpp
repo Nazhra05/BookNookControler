@@ -18,7 +18,7 @@ void Barcode::initialize()
 String Barcode::read()
 {
     if (_barcode->available() < 1)
-        return String("");
+        return "";
 
     String barcodeData = _barcode->readStringUntil('\n');
     barcodeData.trim(); // Menghapus spasi atau newline di akhir data

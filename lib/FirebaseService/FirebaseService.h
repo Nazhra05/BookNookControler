@@ -33,6 +33,7 @@ public:
     void appLoop();
     String validateBarcode(const char *barcode);
     ResponseQuery query(Projection projection, String collection, FieldFilter filter, byte limit = 0);
+    bool addHistory(const char *uid, const char *time);
     void updateData();
     bool isReady();
     String getUid();

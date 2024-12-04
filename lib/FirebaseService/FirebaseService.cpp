@@ -46,16 +46,15 @@ String FirebaseService::validateBarcode(const char *barcode)
 
     ResponseQuery response = FirebaseService::query(projection, "users", fieldFilter);
 
-    if (response.success)
-    {
-        serializeJsonPretty(response.data, Serial);
-        Serial.println();
-    }
+    if (!response.success)
+        return "";
 
-    return "";
+    serializeJsonPretty(response.data, Serial);
+    Serial.println();
+
+    return response.data[0]["document"]["fields"]["uid"]["stringValue"];
 }
 
-// TODO create query function
 ResponseQuery FirebaseService::query(Projection projection, String collection, FieldFilter filter, byte limit)
 {
     ResponseQuery response;
@@ -108,6 +107,30 @@ ResponseQuery FirebaseService::query(Projection projection, String collection, F
     response.message = "Berhasil mengambil Data";
 
     return response;
+}
+
+bool FirebaseService::addHistory(const char *uid, const char *time)
+{
+    Values::StringValue uidV(uid);
+    Values::TimestampValue timeV(time);
+
+    Document<Values::Value> doc("uid", Values::Value(uid));
+    doc.add("time", Values::Value(time));
+
+    // format docPath "collectionId/DocumentId", if whant documentId create automatic only set "collectionId"
+    String docPath = "History";
+
+    String payload = _docs.createDocument(_aClient, _parent, docPath, DocumentMask(), doc);
+
+    if (checkError())
+    {
+        Serial.println("Error when create history");
+        return false;
+    }
+    Serial.print(payload);
+    Serial.println();
+
+    return true;
 }
 
 void FirebaseService::updateData()

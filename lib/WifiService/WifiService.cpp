@@ -4,6 +4,28 @@ WifiService::WifiService(const char *ssid, const char *password, bool autoReconn
 {
 }
 
+void WifiService::setNTP(const char *ntpServer, uint16_t gmtOffsetSec, uint16_t dayLightOffsetSec)
+{
+    configTime(gmtOffsetSec, dayLightOffsetSec, ntpServer);
+    Serial.print("Initialize Time : ");
+    Serial.println(WifiService::getISOTime());
+}
+
+String WifiService::getISOTime()
+{
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return "";
+    }
+    char buff[30];
+    strftime(buff, sizeof(buff), "%Y-%m-%dT%H:%M:%S", &timeinfo);
+    buff += ".00+07:00";
+
+    return buff;
+}
+
 void WiFiConnected(WiFiEvent_t event, WiFiEventInfo_t info)
 {
     Serial.println("WiFi Connected");

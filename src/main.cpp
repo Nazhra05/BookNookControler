@@ -49,10 +49,11 @@ void loop()
     {
         prev = millis();
         barcodeData = barcode->read();
+        Serial.println(barcodeData);
 
         if (fbs->isReady() && !barcodeData.isEmpty())
         {
-            String uid = fbs->validateBarcode(barcodeData);
+            String uid = fbs->validateBarcode(barcodeData.c_str());
 
             if (!uid.isEmpty())
             {

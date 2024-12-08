@@ -20,8 +20,7 @@ String WifiService::getISOTime()
         return "";
     }
     char buff[30];
-    strftime(buff, sizeof(buff), "%Y-%m-%dT%H:%M:%S", &timeinfo);
-    buff += ".00+07:00";
+    strftime(buff, sizeof(buff), "%Y-%m-%dT%H:%M:%S.00+07:00", &timeinfo);
 
     return buff;
 }

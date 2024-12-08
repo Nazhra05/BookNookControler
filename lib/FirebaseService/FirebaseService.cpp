@@ -114,8 +114,8 @@ bool FirebaseService::addHistory(const char *uid, const char *time)
     Values::StringValue uidV(uid);
     Values::TimestampValue timeV(time);
 
-    Document<Values::Value> doc("uid", Values::Value(uid));
-    doc.add("time", Values::Value(time));
+    Document<Values::Value> doc("uid", Values::Value(uidV));
+    doc.add("time", Values::Value(timeV));
 
     // format docPath "collectionId/DocumentId", if whant documentId create automatic only set "collectionId"
     String docPath = "History";

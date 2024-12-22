@@ -54,6 +54,7 @@ void Door::open()
     {
         Door::_servoLeftDoor.write(degree);
         Door::_servoRightDoor.write(_openRightDegree - degree);
+        delay(500);
     }
 
     digitalWrite(Door::_solenoidLeftPin, LOW);
@@ -68,6 +69,7 @@ void Door::close()
     {
         Door::_servoLeftDoor.write(degree);
         Door::_servoRightDoor.write(_openRightDegree - degree);
+        delay(500);
     }
     Door::_isOpened = false;
 }

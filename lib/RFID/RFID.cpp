@@ -1,9 +1,8 @@
 #include <RFID.h>
+#include <algorithm>
 
-RFID::RFID(byte RXPin, byte TXPin)
+RFID::RFID(uint16_t baudRate, byte RXPin, byte TXPin) : _baudRate(baudRate), _rxPin(RXPin), _txPin(TXPin)
 {
-    RFID::_rxPin = RXPin;
-    RFID::_txPin = TXPin;
 }
 
 RFID::~RFID()
@@ -12,12 +11,12 @@ RFID::~RFID()
 
 void RFID::initialize()
 {
-    RFID::_rfid->begin(9600, SERIAL_8N1, _rxPin, _txPin);
+    RFID::_rfid->begin(_baudRate, SERIAL_8N1, _rxPin, _txPin);
 }
 
-String RFID::read()
+BookChangeResult RFID::read()
 {
-    _rfidTag = "";
+    _scannedBooks.clear();
 
     for (int a = 0; a < _duration; a++)
     {
@@ -26,20 +25,11 @@ String RFID::read()
             // 1. Dapatkan panjang data
             uint8_t length[1];
             RFID::_readBytesFromSerial(length, 1);
-            Serial.println(length[1]);
-            Serial.println(length[1], HEX);
 
             // 2. Dapatkan data
             const int dataLength = length[0];
             uint8_t data[dataLength];
             RFID::_readBytesFromSerial(data, dataLength);
-            for (int a = 0; a < dataLength; a++)
-            {
-                Serial.print(data[a]);
-                Serial.print(" ");
-            }
-            Serial.println();
-            // Serial.println(data);
 
             // 3. Respons lengkap
             const int responseLength = 1 + dataLength;
@@ -58,30 +48,108 @@ String RFID::read()
             memcpy(tag, &response[4], tagLength);
 
             // 6. Cek apakah UID yang terdeteksi adalah target UID
+            String dataUID = "";
             if (status == 0x00 && command == 0xEE)
             {
                 // Tampilkan UID tag jika bukan target UID
                 Serial.print("UID: ");
-                String dataUID = "";
                 for (int i = 0; i < tagLength; i++)
                 {
                     if (tag[i] < 16)
+                    {
                         Serial.print("0");
-                    dataUID += "0";
+                        dataUID += "0";
+                    }
                     Serial.print(tag[i], HEX);
                     dataUID += String(tag[i], HEX);
                     if (i < tagLength - 1)
+                    {
                         Serial.print(" ");
-                    dataUID += " ";
+                        dataUID += " ";
+                    }
                 }
                 Serial.println();
                 Serial.println(dataUID);
             }
+            if (dataUID != "")
+            {
+                addScannedBooks(dataUID);
+            }
+        }
+        delay(100);
+    }
+    BookChangeResult result = detectBookChange();
+    Serial.printf("Status : %s\n", result.status);
+    if (result.status != "unchanged")
+    {
+        for (const String &bookUid : result.data)
+        {
+            Serial.println(bookUid);
         }
     }
-    delay(10);
+    Serial.println();
+    return result;
+}
 
-    return _rfidTag;
+void RFID::addScannedBooks(const String &bookUid)
+{
+    for (const String &existingUid : _scannedBooks)
+    {
+        if (existingUid == bookUid)
+            return;
+    }
+    _scannedBooks.push_back(bookUid);
+}
+
+BookChangeResult RFID::detectBookChange()
+{
+    BookChangeResult result;
+    size_t currentBookCount = _currentBooks.size();
+    size_t scannedBookCount = _scannedBooks.size();
+
+    if (currentBookCount < scannedBookCount)
+    {
+        result.status = "added";
+        result.data = findAddedBooks();
+    }
+    else if (currentBookCount > scannedBookCount)
+    {
+        result.status = "remove";
+        result.data = findRemoveBooks();
+    }
+    else
+    {
+        result.status = "unchanged";
+    }
+    return result;
+}
+
+DynamicArray<String> RFID::findAddedBooks()
+{
+    DynamicArray<String> addedBooks;
+    for (const String &bookUid : _scannedBooks)
+    {
+        if (std::find(_currentBooks.begin(), _currentBooks.end(), bookUid) == _currentBooks.end())
+        {
+            addedBooks.push_back(bookUid);
+        }
+    }
+
+    return addedBooks;
+}
+
+DynamicArray<String> RFID::findRemoveBooks()
+{
+    DynamicArray<String> removeBooks;
+    for (const String &bookUid : _currentBooks)
+    {
+        if (std::find(_scannedBooks.begin(), _scannedBooks.end(), bookUid) == _scannedBooks.end())
+        {
+            removeBooks.push_back(bookUid);
+        }
+    }
+
+    return removeBooks;
 }
 
 void RFID::_readBytesFromSerial(uint8_t data[], int length)

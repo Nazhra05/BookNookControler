@@ -3,6 +3,7 @@
 #define BARCODE_TX_PIN 0
 
 // RFID Pin Confifuration
+#define RFID_BAUD_RATE 57600
 #define RFID_RX_PIN 0
 #define RFID_TX_PIN 0
 

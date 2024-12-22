@@ -19,7 +19,8 @@ int taskComplete = 0;
 String barcodeData = "";
 String responseValidateBarcode = "";
 uint64_t prev = 0;
-uint16_t delayRead = 100; // in ms
+uint16_t delayReadBarcode = 100;     // in ms
+uint16_t delayReadDoorStatus = 5000; // in ms
 BookChangeResult resultRfid;
 
 void setup()
@@ -47,7 +48,8 @@ void loop()
 {
     fbs->appLoop();
 
-    if (millis() - prev > delayRead)
+    // read barcode only when door is closed
+    if (millis() - prev > delayReadBarcode && !door->isOpen())
     {
         prev = millis();
         barcodeData = barcode->read();
@@ -58,23 +60,41 @@ void loop()
             if (!responseValidateBarcode.isEmpty())
             {
                 // open door if barcode validate
-                if (!door->isOpen())
-                {
-                    door->open();
-                }
+                door->open();
+                // set  door is open to firebase
+                fbs->setDoorStatusOpen(responseValidateBarcode.c_str(), wifi->getISOTime().c_str());
             }
         }
+    }
 
-        // close the door and start reading RFID if the barcode is validated, as the door will only open when the barcode is validated.
-        if (door->isOpen())
+    // check doorStatus and scan rfid if doorStatus is "closed" and door is open
+    if (millis() - prev > delayReadDoorStatus && door->isOpen())
+    {
+        prev = millis();
+        // check status door
+        String doorStatus = fbs->getDoorStatus();
+        // check if doorStatus is closed
+        if (!doorStatus.isEmpty() && doorStatus == "closed")
         {
             door->close();
             resultRfid = rfid->read();
             if (resultRfid.status != "unchanged")
             {
-                // TODO Update available status book
+                // Update available status book
+                if (fbs->updateBookAvailable(resultRfid))
+                {
+                    Serial.println("Success Update Available Books");
+                }
 
-                // TODO Add Loan history
+                // only add history when borrowing
+                if (resultRfid.status == "remove")
+                {
+                    // Add Loan history
+                    if (fbs->addHistory(responseValidateBarcode.c_str(), resultRfid, wifi->getISOTime().c_str(), wifi->getISOTimeWithAddition(72).c_str()))
+                    {
+                        Serial.println("Success Add Loan History");
+                    }
+                }
             }
         }
     }

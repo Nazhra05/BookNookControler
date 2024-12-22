@@ -6,6 +6,7 @@
 #include <WiFiClientSecure.h>
 #include <FirebaseClient.h>
 #include <ResponseQuery.h>
+#include <BookChangeResult.h>
 
 class FirebaseService
 {
@@ -33,7 +34,10 @@ public:
     void appLoop();
     String validateBarcode(const char *barcode);
     ResponseQuery query(Projection projection, String collection, FieldFilter filter, byte limit = 0);
-    bool addHistory(const char *uid, const char *time);
+    bool addHistory(const char *uid, BookChangeResult books, const char *borrowTime, const char *returnTime);
+    bool updateBookAvailable(BookChangeResult books);
+    bool setDoorStatusOpen(const char *uid, const char *timeUpdate);
+    String getDoorStatus();
     void updateData();
     bool isReady();
     String getUid();

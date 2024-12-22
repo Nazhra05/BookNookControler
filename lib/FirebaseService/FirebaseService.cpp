@@ -109,18 +109,31 @@ ResponseQuery FirebaseService::query(Projection projection, String collection, F
     return response;
 }
 
-bool FirebaseService::addHistory(const char *uid, const char *time)
+bool FirebaseService::addHistory(const char *uid, BookChangeResult books, const char *borrowTime, const char *returnTime)
 {
-    Values::StringValue uidV(uid);
-    Values::TimestampValue timeV(time);
+    Values::StringValue userIdV(uid);
+    Values::TimestampValue waktuPeminjamanV(borrowTime);
+    Values::TimestampValue waktuPengembalianV(returnTime);
+    // Array for save uid book
+    Values::ArrayValue arrUidBook(Values::StringValue(""));
+    arrUidBook.clear();
 
-    Document<Values::Value> doc("uid", Values::Value(uidV));
-    doc.add("time", Values::Value(timeV));
+    for (const String &book : books.data)
+    {
+        arrUidBook.add(Values::StringValue(book));
+    }
+
+    Document<Values::Value> historyDoc("userId", Values::Value(userIdV));
+    historyDoc.add("booksUid", Values::Value(arrUidBook));
+    historyDoc.add("waktuPeminjaman", Values::Value(waktuPeminjamanV));
+    historyDoc.add("waktuPengembalian", Values::Value(waktuPengembalianV));
+
+    historyDoc.clear();
 
     // format docPath "collectionId/DocumentId", if whant documentId create automatic only set "collectionId"
-    String docPath = "History";
+    String docPath = "History/" + String(borrowTime) + "-" + String(uid);
 
-    String payload = _docs.createDocument(_aClient, _parent, docPath, DocumentMask(), doc);
+    String payload = _docs.createDocument(_aClient, _parent, docPath, DocumentMask(), historyDoc);
 
     if (checkError())
     {
@@ -131,6 +144,93 @@ bool FirebaseService::addHistory(const char *uid, const char *time)
     Serial.println();
 
     return true;
+}
+
+bool FirebaseService::updateBookAvailable(BookChangeResult books)
+{
+    String docPath;
+    bool availableStatus;
+
+    // Document for updata available
+    Document<Values::Value> updateDoc;
+    updateDoc.clear();
+
+    Writes writes(Write(DocumentMask(), updateDoc, Precondition()));
+    writes.clear();
+
+    if (books.status == "added")
+        availableStatus = true;
+    else if (books.status == "remove")
+        availableStatus = false;
+
+    for (const String &book : books.data)
+    {
+        docPath = "books/" + book;
+        updateDoc.setName(docPath);
+
+        Values::BooleanValue availableV(availableStatus);
+        updateDoc.add("available", Values::Value(availableV));
+
+        writes.add(Write(DocumentMask("available"), updateDoc, Precondition()));
+        updateDoc.clear();
+    }
+
+    String payload = _docs.batchWrite(_aClient, _parent, writes);
+
+    if (checkError())
+    {
+        Serial.println("Error when create history");
+        return false;
+    }
+    Serial.print(payload);
+
+    return true;
+}
+
+bool FirebaseService::setDoorStatusOpen(const char *uid, const char *timeUpdate)
+{
+    PatchDocumentOptions patchOptions(DocumentMask(""), DocumentMask(""), Precondition());
+
+    Values::StringValue openV("opened");
+    Values::StringValue uidV(uid);
+    Values::TimestampValue timeUpdateV(timeUpdate);
+
+    Document<Values::Value> doc("doorStatus", Values::Value(openV));
+    doc.add("lastUpdate", Values::Value(timeUpdateV));
+    doc.add("uid", Values::Value(uidV));
+
+    String payload = _docs.patch(_aClient, _parent, "Door/status", patchOptions, doc);
+
+    if (checkError())
+    {
+        Serial.println("Error when create history");
+        return false;
+    }
+
+    return true;
+}
+
+String FirebaseService::getDoorStatus()
+{
+    String payload = _docs.get(_aClient, _parent, "Door/status", GetDocumentOptions());
+
+    if (checkError())
+    {
+        Serial.println("Error when create history");
+        return "";
+    }
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, payload);
+
+    if (error)
+    {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.f_str());
+        return "";
+    }
+
+    String status = doc["fields"]["doorStatus"]["stringValue"].as<String>();
 }
 
 void FirebaseService::updateData()

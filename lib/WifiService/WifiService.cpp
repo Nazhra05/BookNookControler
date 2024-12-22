@@ -25,6 +25,22 @@ String WifiService::getISOTime()
     return buff;
 }
 
+/**
+ * @brief
+ * @param addition in Hour
+ * @return String time in ISO Format
+ */
+String WifiService::getISOTimeWithAddition(uint16_t addition)
+{
+    time_t now = time(NULL);
+    time_t future = now + (addition * 3600);
+    struct tm *futureTime = localtime(&future);
+    char buff[30];
+    strftime(buff, sizeof(buff), "%Y-%m-%dT%H:%M:%S.00+07:00", futureTime);
+
+    return buff;
+}
+
 void WiFiConnected(WiFiEvent_t event, WiFiEventInfo_t info)
 {
     Serial.println("WiFi Connected");

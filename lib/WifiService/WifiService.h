@@ -19,6 +19,7 @@ public:
     WifiService(const char *ssid, const char *password, bool autoReconnect = true);
     void setNTP(const char *ntpServer, uint16_t gmtOffsetSec, uint16_t dayLightOffsetSec);
     String getISOTime();
+    String getISOTimeWithAddition(uint16_t addition);
     void connect();
     bool ready();
 };

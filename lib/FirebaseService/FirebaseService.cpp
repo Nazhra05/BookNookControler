@@ -128,12 +128,11 @@ bool FirebaseService::addHistory(const char *uid, BookChangeResult books, const 
     historyDoc.add("waktuPeminjaman", Values::Value(waktuPeminjamanV));
     historyDoc.add("waktuPengembalian", Values::Value(waktuPengembalianV));
 
-    historyDoc.clear();
-
     // format docPath "collectionId/DocumentId", if whant documentId create automatic only set "collectionId"
     String docPath = "History/" + String(borrowTime) + "-" + String(uid);
 
     String payload = _docs.createDocument(_aClient, _parent, docPath, DocumentMask(), historyDoc);
+    historyDoc.clear();
 
     if (checkError())
     {
@@ -230,7 +229,7 @@ String FirebaseService::getDoorStatus()
         return "";
     }
 
-    String status = doc["fields"]["doorStatus"]["stringValue"].as<String>();
+    return doc["fields"]["doorStatus"]["stringValue"].as<String>();
 }
 
 void FirebaseService::updateData()
